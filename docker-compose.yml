@@ -1,39 +1,40 @@
-version: "3.8"
+ name: CI/CD Pipeline
 
-services:
-  mysql:
-    image: mysql:8.0
-    container_name: mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: Varun@123   # Root password
-      MYSQL_DATABASE: weatherdb        # Initial database
-    ports:
-      - "3307:3306"  # Host port
-    volumes:
-      - mysql-data:/var/lib/mysql
-    restart: unless-stopped
+on:
+  push:
+    branches:
+      - main
 
-  backend:
-    build: ./backend
-    container_name: backend
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/weatherdb
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Varun@123
-    depends_on:
-      - mysql
-    restart: unless-stopped
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-  frontend:
-    build: ./app-weather-react-main
-    container_name: frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    restart: unless-stopped
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-volumes:
-  mysql-data:
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        run: |
+          cd app-weather-react-main
+          npm install
+
+      - name: Build frontend
+        run: |
+          cd app-weather-react-main
+          npm run build
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build backend
+        run: |
+          cd backend
+          ./mvnw clean package -DskipTests
